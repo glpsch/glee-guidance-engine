@@ -124,11 +124,11 @@ function makeRoomMoves(board: Board, settings: GameSettings, activeIndex: number
       }
       if (!best) return;
 
-      const amount = plate.counts[blockerColor];
+      const amount = plate.counts[blockerColor] ?? 0;
       const dest = board.cells[best.to]!;
       const moved = Math.min(amount, freeSlots(dest, capacity));
       if (moved <= 0) return;
-      plate.counts[blockerColor] -= moved;
+      plate.counts[blockerColor] = amount - moved;
       dest.counts[blockerColor] = (dest.counts[blockerColor] ?? 0) + moved;
       moves.push({ from: index, to: best.to, color: blockerColor, count: moved });
     });
