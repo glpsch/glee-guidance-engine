@@ -73,13 +73,8 @@ export function useCakeSort() {
 
       if (completions > 0) setScore((s) => s + scoreForCascade(completions));
 
-      if (isBoardFull(finalBoard)) {
-        setGameOver(true);
-        setScore((finalScore) => {
-          setScores(saveScore(finalScore + (completions > 0 ? scoreForCascade(completions) : 0) - (completions > 0 ? scoreForCascade(completions) : 0)));
-          return finalScore;
-        });
-      }
+      if (isBoardFull(finalBoard)) setGameOver(true);
+
       setBusy(false);
     },
     [board, busy, gameOver, settings, tray],
