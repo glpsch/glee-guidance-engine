@@ -4,6 +4,7 @@
 
 @custom-variant dark (&:is(.dark *));
 
+
 /*
  * Design system definition.
  *
@@ -142,3 +143,76 @@
     color: var(--color-foreground);
   }
 }
+
+/* ---- Cake Sort palette: flat, saturated, thick-outline cartoon look ---- */
+:root {
+  --radius: 1rem;
+  --background: oklch(0.95 0.045 195);
+  --foreground: oklch(0.26 0.06 275);
+  --card: oklch(0.99 0.02 95);
+  --card-foreground: oklch(0.26 0.06 275);
+  --popover: oklch(0.99 0.02 95);
+  --popover-foreground: oklch(0.26 0.06 275);
+  --primary: oklch(0.72 0.16 350);
+  --primary-foreground: oklch(0.99 0.01 350);
+  --secondary: oklch(0.88 0.11 190);
+  --secondary-foreground: oklch(0.26 0.06 275);
+  --muted: oklch(0.92 0.03 200);
+  --muted-foreground: oklch(0.45 0.05 265);
+  --accent: oklch(0.9 0.15 95);
+  --accent-foreground: oklch(0.26 0.06 275);
+  --destructive: oklch(0.62 0.22 25);
+  --destructive-foreground: oklch(0.98 0.01 95);
+  --border: oklch(0.26 0.06 275);
+  --input: oklch(0.26 0.06 275);
+  --ring: oklch(0.72 0.16 350);
+
+  --ink: oklch(0.26 0.06 275);
+  --plate: oklch(0.99 0.015 95);
+  --plate-empty: oklch(0.9 0.035 200);
+  --board: oklch(0.86 0.07 190);
+
+  --cake-1: oklch(0.63 0.22 25);
+  --cake-2: oklch(0.74 0.18 55);
+  --cake-3: oklch(0.87 0.16 95);
+  --cake-4: oklch(0.78 0.19 145);
+  --cake-5: oklch(0.6 0.17 250);
+  --cake-6: oklch(0.55 0.19 305);
+  --cake-7: oklch(0.79 0.15 350);
+  --cake-8: oklch(0.45 0.09 55);
+
+  --shadow-chunky: 0 4px 0 0 var(--ink);
+}
+
+@theme inline {
+  --font-display: "Baloo 2", ui-rounded, system-ui, sans-serif;
+  --font-sans: "Nunito", ui-rounded, system-ui, sans-serif;
+  --color-ink: var(--ink);
+  --color-plate: var(--plate);
+  --color-plate-empty: var(--plate-empty);
+  --color-board: var(--board);
+}
+
+@layer base {
+  body {
+    font-family: var(--font-sans);
+    -webkit-tap-highlight-color: transparent;
+  }
+  h1, h2, h3, .font-display {
+    font-family: var(--font-display);
+  }
+}
+
+@keyframes pop-complete {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.25) rotate(-4deg); }
+  100% { transform: scale(0); opacity: 0; }
+}
+.animate-pop-complete { animation: pop-complete 420ms cubic-bezier(.34,1.56,.64,1) forwards; }
+
+@keyframes plate-land {
+  0% { transform: scale(0.6); }
+  60% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+.animate-plate-land { animation: plate-land 260ms cubic-bezier(.34,1.56,.64,1); }
