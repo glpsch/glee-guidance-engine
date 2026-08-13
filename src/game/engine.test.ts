@@ -67,7 +67,9 @@ describe("Rule 9 — single-colour destinations win", () => {
       3: { [YELLOW]: 1, [RED]: 1 },
     });
     const { finalBoard } = resolveBoard(b, settings, 4);
-    expect(counts(finalBoard, 1, YELLOW)).toBe(4);
+    // all yellow ends up on the pure plate, never on the mixed one
+    expect(counts(finalBoard, 1, YELLOW)).toBe(5);
+    expect(counts(finalBoard, 3, YELLOW)).toBe(0);
   });
 });
 
