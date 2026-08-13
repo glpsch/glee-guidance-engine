@@ -23,7 +23,7 @@ export function CakeSortGame() {
     const el = document.elementFromPoint(x, y);
     const cell = el?.closest<HTMLElement>("[data-cell]");
     if (!cell) return null;
-    const idx = Number(cell.dataset.cell);
+    const idx = Number(cell.dataset["cell"]);
     return Number.isNaN(idx) ? null : idx;
   };
 
