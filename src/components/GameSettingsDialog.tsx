@@ -131,9 +131,6 @@ export function GameSettingsDialog({ open, settings, onStart, onClose, onResetSc
               onChange={(n) => patch({ startingPlates: n })}
             />
           </Row>
-          <Row label="Plate capacity">
-            <Num value={draft.plateCapacity} min={3} max={8} onChange={(n) => patch({ plateCapacity: n })} />
-          </Row>
           <Row label="Mix intensity">
             <Segmented value={draft.mixIntensity} options={MIXES} onChange={(v) => patch({ mixIntensity: v })} />
           </Row>

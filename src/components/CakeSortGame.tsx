@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { CakePlate } from "@/components/CakePlate";
 import { GameSettingsDialog } from "@/components/GameSettingsDialog";
 import { useCakeSort } from "@/hooks/useCakeSort";
+import { PLATE_CAPACITY } from "@/game/config";
 import type { GameSettings } from "@/game/types";
 
 interface DragState {
