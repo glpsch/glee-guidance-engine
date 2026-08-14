@@ -169,11 +169,23 @@ export function resolveBoard(
   let active = activeIndex;
 
   for (let tick = 0; tick < MAX_CASCADE_TICKS; tick += 1) {
-    const candidates = collectCandidates(board, settings, active);
-    let moves = applyPass(board, candidates, settings, settings.resolutionMode === "sequential");
+    const sequential = settings.resolutionMode === "sequential";
+    const moves: Move[] = [];
+
+    // Rule 12 — after the maximum legal movement, leftovers are re-evaluated
+    // against the hierarchy WITHIN the same tick. A plate that just filled is
+    // now a zero-capacity destination, so the next pass naturally redirects the
+    // remaining pieces to the next-best plate (Rules 13/14, stepping stone).
+    for (let pass = 0; pass < MAX_CASCADE_TICKS; pass += 1) {
+      const candidates = collectCandidates(board, settings, active);
+      const applied = applyPass(board, candidates, settings, sequential);
+      if (applied.length === 0) break;
+      moves.push(...applied);
+      if (sequential) break;
+    }
 
     if (moves.length === 0) {
-      moves = makeRoomMoves(board, settings, active);
+      moves.push(...makeRoomMoves(board, settings, active));
       if (moves.length === 0) break;
     }
 
