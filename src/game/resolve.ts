@@ -1,4 +1,4 @@
-import { ENABLE_MAKE_ROOM, MAX_CASCADE_TICKS } from "./config";
+import { ENABLE_MAKE_ROOM, MAX_CASCADE_TICKS, PLATE_CAPACITY } from "./config";
 import {
   cloneBoard,
   completedType,
@@ -29,7 +29,7 @@ export function collectCandidates(
   settings: GameSettings,
   activeIndex: number | null,
 ): Candidate[] {
-  const capacity = settings.plateCapacity;
+  const capacity = PLATE_CAPACITY;
   const out: Candidate[] = [];
 
   board.cells.forEach((source, from) => {
@@ -64,7 +64,7 @@ export function collectCandidates(
  * plate that has just filled is simply a zero-capacity destination (Rule 14).
  */
 function applyPass(board: Board, candidates: Candidate[], settings: GameSettings, single: boolean): Move[] {
-  const capacity = settings.plateCapacity;
+  const capacity = PLATE_CAPACITY;
   const moves: Move[] = [];
 
   for (const cand of candidates) {
@@ -94,7 +94,7 @@ function applyPass(board: Board, candidates: Candidate[], settings: GameSettings
  */
 function makeRoomMoves(board: Board, settings: GameSettings, activeIndex: number | null): Move[] {
   if (!ENABLE_MAKE_ROOM) return [];
-  const capacity = settings.plateCapacity;
+  const capacity = PLATE_CAPACITY;
   const moves: Move[] = [];
 
   board.cells.forEach((plate, index) => {
@@ -164,7 +164,7 @@ export function resolveBoard(
 ): ResolutionResult {
   const board = cloneBoard(startBoard);
   const snapshots: Snapshot[] = [];
-  const capacity = settings.plateCapacity;
+  const capacity = PLATE_CAPACITY;
   let completions = 0;
   let active = activeIndex;
 

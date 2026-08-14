@@ -16,10 +16,12 @@ export const DEFAULT_SETTINGS: GameSettings = {
   startingPlates: 0,
   mixIntensity: "easy",
   resolutionMode: "simultaneous",
-  plateCapacity: 6,
 };
 
 /** Rule 11, step 6 — weighted distance to the top-left corner. */
+/** Rule 14 — a cake always takes exactly six pieces. */
+export const PLATE_CAPACITY = 6;
+
 export const SPATIAL_WEIGHTS = { row: 1.0, column: 0.1 };
 
 /**
