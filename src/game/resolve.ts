@@ -1,4 +1,4 @@
-import { ENABLE_MAKE_ROOM, MAX_CASCADE_TICKS } from "./config";
+import { ENABLE_MAKE_ROOM, MAX_CASCADE_TICKS, PLATE_CAPACITY } from "./config";
 import {
   cloneBoard,
   completedType,
@@ -29,7 +29,7 @@ export function collectCandidates(
   settings: GameSettings,
   activeIndex: number | null,
 ): Candidate[] {
-  const capacity = settings.plateCapacity;
+  const capacity = PLATE_CAPACITY;
   const out: Candidate[] = [];
 
   board.cells.forEach((source, from) => {
@@ -64,7 +64,7 @@ export function collectCandidates(
  * plate that has just filled is simply a zero-capacity destination (Rule 14).
  */
 function applyPass(board: Board, candidates: Candidate[], settings: GameSettings, single: boolean): Move[] {
-  const capacity = settings.plateCapacity;
+  const capacity = PLATE_CAPACITY;
   const moves: Move[] = [];
 
   for (const cand of candidates) {
@@ -94,7 +94,7 @@ function applyPass(board: Board, candidates: Candidate[], settings: GameSettings
  */
 function makeRoomMoves(board: Board, settings: GameSettings, activeIndex: number | null): Move[] {
   if (!ENABLE_MAKE_ROOM) return [];
-  const capacity = settings.plateCapacity;
+  const capacity = PLATE_CAPACITY;
   const moves: Move[] = [];
 
   board.cells.forEach((plate, index) => {
@@ -164,16 +164,28 @@ export function resolveBoard(
 ): ResolutionResult {
   const board = cloneBoard(startBoard);
   const snapshots: Snapshot[] = [];
-  const capacity = settings.plateCapacity;
+  const capacity = PLATE_CAPACITY;
   let completions = 0;
   let active = activeIndex;
 
   for (let tick = 0; tick < MAX_CASCADE_TICKS; tick += 1) {
-    const candidates = collectCandidates(board, settings, active);
-    let moves = applyPass(board, candidates, settings, settings.resolutionMode === "sequential");
+    const sequential = settings.resolutionMode === "sequential";
+    const moves: Move[] = [];
+
+    // Rule 12 — after the maximum legal movement, leftovers are re-evaluated
+    // against the hierarchy WITHIN the same tick. A plate that just filled is
+    // now a zero-capacity destination, so the next pass naturally redirects the
+    // remaining pieces to the next-best plate (Rules 13/14, stepping stone).
+    for (let pass = 0; pass < MAX_CASCADE_TICKS; pass += 1) {
+      const candidates = collectCandidates(board, settings, active);
+      const applied = applyPass(board, candidates, settings, sequential);
+      if (applied.length === 0) break;
+      moves.push(...applied);
+      if (sequential) break;
+    }
 
     if (moves.length === 0) {
-      moves = makeRoomMoves(board, settings, active);
+      moves.push(...makeRoomMoves(board, settings, active));
       if (moves.length === 0) break;
     }
 

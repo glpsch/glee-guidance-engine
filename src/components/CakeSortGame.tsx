@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { CakePlate } from "@/components/CakePlate";
 import { GameSettingsDialog } from "@/components/GameSettingsDialog";
 import { useCakeSort } from "@/hooks/useCakeSort";
+import { PLATE_CAPACITY } from "@/game/config";
 import type { GameSettings } from "@/game/types";
 
 interface DragState {
@@ -114,7 +115,7 @@ export function CakeSortGame() {
                 >
                   <CakePlate
                     plate={plate}
-                    capacity={settings.plateCapacity}
+                    capacity={PLATE_CAPACITY}
                     completing={game.completing.includes(index)}
                   />
                 </div>
@@ -136,7 +137,7 @@ export function CakeSortGame() {
               selected === i ? "-translate-y-2 scale-110" : ""
             } ${drag?.trayIndex === i && drag.moved ? "opacity-30" : ""}`}
           >
-            <CakePlate plate={plate} capacity={settings.plateCapacity} />
+            <CakePlate plate={plate} capacity={PLATE_CAPACITY} />
           </div>
         ))}
       </div>
@@ -169,7 +170,7 @@ export function CakeSortGame() {
           className="pointer-events-none fixed z-40 h-20 w-20 -translate-x-1/2 -translate-y-1/2"
           style={{ left: drag.x, top: drag.y }}
         >
-          <CakePlate plate={heldPlate} capacity={settings.plateCapacity} />
+          <CakePlate plate={heldPlate} capacity={PLATE_CAPACITY} />
         </div>
       )}
 

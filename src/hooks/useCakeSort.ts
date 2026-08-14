@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { COMPLETION_HOLD_MS, DEFAULT_SETTINGS, TICK_DURATION_MS } from "@/game/config";
-import { cloneBoard, isBoardFull } from "@/game/board";
+import { cloneBoard, createBoard, isBoardFull } from "@/game/board";
 import { generateServedPlate, generateStartingBoard, generateTray } from "@/game/generate";
 import { resolveBoard } from "@/game/resolve";
 import { scoreForCascade } from "@/game/scoring";
@@ -11,8 +11,11 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export function useCakeSort() {
   const [settings, setSettings] = useState<GameSettings>(DEFAULT_SETTINGS);
-  const [board, setBoard] = useState<Board>(() => generateStartingBoard(DEFAULT_SETTINGS));
-  const [tray, setTray] = useState<Plate[]>(() => generateTray(DEFAULT_SETTINGS));
+  // Generated after mount: random plates during SSR would hydrate-mismatch.
+  const [board, setBoard] = useState<Board>(() =>
+    createBoard(DEFAULT_SETTINGS.boardWidth, DEFAULT_SETTINGS.boardHeight),
+  );
+  const [tray, setTray] = useState<Plate[]>([]);
   const [score, setScore] = useState(0);
   const [scores, setScores] = useState<number[]>([]);
   const [completing, setCompleting] = useState<number[]>([]);
@@ -24,6 +27,8 @@ export function useCakeSort() {
 
   useEffect(() => {
     setScores(loadScores());
+    setBoard(generateStartingBoard(DEFAULT_SETTINGS));
+    setTray(generateTray(DEFAULT_SETTINGS));
   }, []);
 
   const start = useCallback((next: GameSettings) => {

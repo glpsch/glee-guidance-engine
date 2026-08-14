@@ -24,7 +24,6 @@ export interface GameSettings {
   startingPlates: number;
   mixIntensity: MixIntensity;
   resolutionMode: ResolutionMode;
-  plateCapacity: number;
 }
 
 export interface Move {

@@ -1,4 +1,4 @@
-import { MIX_COLOR_WEIGHTS, SERVED_PIECE_COUNT, STARTING_PIECE_COUNT } from "./config";
+import { MIX_COLOR_WEIGHTS, PLATE_CAPACITY, SERVED_PIECE_COUNT, STARTING_PIECE_COUNT } from "./config";
 import { createBoard, emptyCounts, makePlate } from "./board";
 import type { Board, GameSettings, Plate } from "./types";
 
@@ -37,7 +37,7 @@ function generateCounts(settings: GameSettings, range: { min: number; max: numbe
   const pieces = Math.max(
     colorCount,
     Math.min(
-      settings.plateCapacity - 1,
+      PLATE_CAPACITY - 1,
       range.min + Math.floor(Math.random() * (range.max - range.min + 1)),
     ),
   );
