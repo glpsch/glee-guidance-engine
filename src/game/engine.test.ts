@@ -141,8 +141,8 @@ describe("Rule 26 — scoring", () => {
 
 describe("Rules 12/13 — same-tick redirection completes two cakes", () => {
   it("completes both cakes when a plate is placed between two full-enough neighbours", () => {
-    const b = board({ 0: { [YELLOW]: 5 }, 1: { [YELLOW]: 2 }, 2: { [YELLOW]: 5 } });
-    const { finalBoard, completions } = resolveBoard(b, settings, 1);
+    const b = board({ 0: { [YELLOW]: 3 }, 1: { [YELLOW]: 5 }, 4: { [YELLOW]: 5 } });
+    const { finalBoard, completions } = resolveBoard(b, settings, 4);
     expect(completions).toBe(2);
     expect(finalBoard.cells.every((p) => p === null)).toBe(true);
   });
