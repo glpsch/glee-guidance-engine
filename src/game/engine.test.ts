@@ -144,6 +144,7 @@ describe("Rules 12/13 — same-tick redirection completes two cakes", () => {
     const b = board({ 0: { [YELLOW]: 3 }, 1: { [YELLOW]: 5 }, 4: { [YELLOW]: 5 } });
     const { finalBoard, completions } = resolveBoard(b, settings, 4);
     expect(completions).toBe(2);
-    expect(finalBoard.cells.every((p) => p === null)).toBe(true);
+    const left = finalBoard.cells.reduce((sum, p) => sum + (p?.counts[YELLOW] ?? 0), 0);
+    expect(left).toBe(1);
   });
 });
