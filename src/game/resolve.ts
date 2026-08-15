@@ -171,15 +171,15 @@ export function resolveBoard(
     const sequential = settings.resolutionMode === "sequential";
     const moves: Move[] = [];
 
-    // Rule 12/14 — apply the single best move in the unified hierarchy, then
-    // re-assess the WHOLE board before the next one. A plate that just filled
-    // is now a zero-capacity destination, so leftovers are automatically
-    // redirected to the next-best plate within the same tick (stepping stone).
+    // Rule 12/14 — apply the whole simultaneous batch, then re-assess the ENTIRE
+    // board and repeat within the same tick. A plate that just filled is now a
+    // zero-capacity destination, so leftovers are redirected to the next-best
+    // plate before the tick ends (stepping stone).
     for (let pass = 0; pass < MAX_CASCADE_TICKS; pass += 1) {
       const candidates = collectCandidates(board, settings, active);
-      const applied = applyBestMove(board, candidates);
-      if (!applied) break;
-      moves.push(applied);
+      const applied = applyPass(board, candidates, sequential);
+      if (applied.length === 0) break;
+      moves.push(...applied);
       if (sequential) break;
     }
 
