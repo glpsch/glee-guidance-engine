@@ -19,3 +19,8 @@ describe("x", () => {
   console.log("chain", r.completions, r.finalBoard.cells.map(p=>p?p.counts.join(""):"-"));
  });
 });
+describe("dbg", () => { it("d", () => {
+ const b = board({3:{[G]:5},4:{[G]:3},5:{[G]:4}});
+ const r = resolveBoard(b, s, 4);
+ r.snapshots.forEach((sn,i)=>console.log(i, JSON.stringify(sn.moves), "completed", sn.completed, sn.board.cells.map(p=>p?p.counts[G]:"-").join("|")));
+});});
