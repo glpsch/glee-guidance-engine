@@ -45,10 +45,10 @@ export const STARTING_PIECE_COUNT = { min: 1, max: 4 };
 export const SAVED_SCORE_COUNT = 5;
 
 /** Milliseconds per animated resolution tick (Rule 22 pacing). */
-export const TICK_DURATION_MS = 260;
+export const TICK_DURATION_MS = 700;
 
 /** Extra pause before a completed plate clears from the board (Rule 14). */
-export const COMPLETION_HOLD_MS = 320;
+export const COMPLETION_HOLD_MS = 900;
 
 /**
  * Rule 16 safety valve — hard ceiling on cascade passes.
