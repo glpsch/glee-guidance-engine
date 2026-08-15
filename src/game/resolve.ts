@@ -63,8 +63,9 @@ export function collectCandidates(
  * globally sorted, walking it in order gives exactly that behaviour, and a
  * plate that has just filled is simply a zero-capacity destination (Rule 14).
  */
-function applyBestMove(board: Board, candidates: Candidate[]): Move | null {
+function applyPass(board: Board, candidates: Candidate[], single: boolean): Move[] {
   const capacity = PLATE_CAPACITY;
+  const moves: Move[] = [];
 
   for (const cand of candidates) {
     const source = board.cells[cand.from];
@@ -78,10 +79,11 @@ function applyBestMove(board: Board, candidates: Candidate[]): Move | null {
     const amount = Math.min(have, free);
     source.counts[cand.color] = have - amount;
     dest.counts[cand.color] = (dest.counts[cand.color] ?? 0) + amount;
-    return { from: cand.from, to: cand.to, color: cand.color, count: amount };
+    moves.push({ from: cand.from, to: cand.to, color: cand.color, count: amount });
+    if (single) break;
   }
 
-  return null;
+  return moves;
 }
 
 /**
@@ -169,15 +171,15 @@ export function resolveBoard(
     const sequential = settings.resolutionMode === "sequential";
     const moves: Move[] = [];
 
-    // Rule 12/14 — apply the single best move in the unified hierarchy, then
-    // re-assess the WHOLE board before the next one. A plate that just filled
-    // is now a zero-capacity destination, so leftovers are automatically
-    // redirected to the next-best plate within the same tick (stepping stone).
+    // Rule 12/14 — apply the whole simultaneous batch, then re-assess the ENTIRE
+    // board and repeat within the same tick. A plate that just filled is now a
+    // zero-capacity destination, so leftovers are redirected to the next-best
+    // plate before the tick ends (stepping stone).
     for (let pass = 0; pass < MAX_CASCADE_TICKS; pass += 1) {
       const candidates = collectCandidates(board, settings, active);
-      const applied = applyBestMove(board, candidates);
-      if (!applied) break;
-      moves.push(applied);
+      const applied = applyPass(board, candidates, sequential);
+      if (applied.length === 0) break;
+      moves.push(...applied);
       if (sequential) break;
     }
 

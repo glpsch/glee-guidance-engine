@@ -1,5 +1,5 @@
 import { MIX_COLOR_WEIGHTS, PLATE_CAPACITY, SERVED_PIECE_COUNT, STARTING_PIECE_COUNT } from "./config";
-import { createBoard, emptyCounts, makePlate } from "./board";
+import { createBoard, emptyCounts, makePlate, neighbors } from "./board";
 import type { Board, GameSettings, Plate } from "./types";
 
 /**
@@ -63,7 +63,11 @@ export function generateTray(settings: GameSettings): Plate[] {
   return Array.from({ length: settings.servedPlates }, () => generateServedPlate(settings));
 }
 
-/** Rule 3 — spread starting plates so the board is stable when presented. */
+/**
+ * Rule 3 — starting plates must be spread out AND the board must already be
+ * stable: no two neighbouring plates may share a cake type, otherwise they
+ * would immediately consolidate before the player's first move.
+ */
 export function generateStartingBoard(settings: GameSettings): Board {
   const board = createBoard(settings.boardWidth, settings.boardHeight);
   const total = board.cells.length;
@@ -74,8 +78,22 @@ export function generateStartingBoard(settings: GameSettings): Board {
     .slice(0, wanted)
     .sort((a, b) => a - b);
 
+  const sharesColor = (a: Plate, b: Plate) =>
+    a.counts.some((n, t) => n > 0 && (b.counts[t] ?? 0) > 0);
+
   spots.forEach((spot) => {
-    board.cells[spot] = makePlate(generateCounts(settings, STARTING_PIECE_COUNT));
+    for (let attempt = 0; attempt < 60; attempt += 1) {
+      const plate = makePlate(generateCounts(settings, STARTING_PIECE_COUNT));
+      const clash = neighbors(board, spot).some((n) => {
+        const nb = board.cells[n];
+        return !!nb && sharesColor(nb, plate);
+      });
+      if (!clash || attempt === 59) {
+        // Last resort: leave the position empty rather than seed an unstable board.
+        if (!clash) board.cells[spot] = plate;
+        break;
+      }
+    }
   });
 
   return board;

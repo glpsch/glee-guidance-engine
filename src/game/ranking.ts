@@ -36,6 +36,10 @@ export function destinationRank(
 
   return [
     canComplete ? 0 : 1,
+    // Within the completion tier, the plate that needs the fewest pieces wins
+    // (Rule 11 step 4 — largest matching group). This keeps a nearly finished
+    // cake from being starved by a newer plate that also could complete.
+    canComplete ? capacity - have : 0,
     isSingleColor(plate, color) ? 0 : 1,
     activeIndex === index ? 0 : 1,
     -have,

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_SETTINGS } from "./config";
 import { createBoard, emptyCounts, makePlate } from "./board";
+import { generateStartingBoard } from "./generate";
 import { resolveBoard } from "./resolve";
 import { scoreForCascade } from "./scoring";
 import type { Board, GameSettings } from "./types";
@@ -146,5 +147,23 @@ describe("Rules 12/13 — same-tick redirection completes two cakes", () => {
     expect(completions).toBe(2);
     const left = finalBoard.cells.reduce((sum, p) => sum + (p?.counts[YELLOW] ?? 0), 0);
     expect(left).toBe(1);
+  });
+});
+
+describe("Rule 3 — starting boards are stable", () => {
+  it("never generates neighbours that would immediately consolidate", () => {
+    for (let i = 0; i < 100; i += 1) {
+      const s: GameSettings = { ...DEFAULT_SETTINGS, startingPlates: 8, mixIntensity: "hard" };
+      const b = generateStartingBoard(s);
+      expect(resolveBoard(b, s, null).snapshots.length).toBe(0);
+    }
+  });
+});
+
+describe("Rule 14 — stepping stone across a completing neighbour", () => {
+  it("completes two cakes from 5 / 3 / 4 in a row", () => {
+    const b = board({ 3: { [YELLOW]: 5 }, 4: { [YELLOW]: 3 }, 5: { [YELLOW]: 4 } });
+    const { completions } = resolveBoard(b, settings, 4);
+    expect(completions).toBe(2);
   });
 });
