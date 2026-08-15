@@ -1,5 +1,5 @@
 import { MIX_COLOR_WEIGHTS, PLATE_CAPACITY, SERVED_PIECE_COUNT, STARTING_PIECE_COUNT } from "./config";
-import { createBoard, emptyCounts, makePlate } from "./board";
+import { createBoard, emptyCounts, makePlate, neighbors } from "./board";
 import type { Board, GameSettings, Plate } from "./types";
 
 /**
