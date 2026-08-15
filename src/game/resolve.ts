@@ -63,8 +63,9 @@ export function collectCandidates(
  * globally sorted, walking it in order gives exactly that behaviour, and a
  * plate that has just filled is simply a zero-capacity destination (Rule 14).
  */
-function applyBestMove(board: Board, candidates: Candidate[]): Move | null {
+function applyPass(board: Board, candidates: Candidate[], single: boolean): Move[] {
   const capacity = PLATE_CAPACITY;
+  const moves: Move[] = [];
 
   for (const cand of candidates) {
     const source = board.cells[cand.from];
@@ -78,10 +79,11 @@ function applyBestMove(board: Board, candidates: Candidate[]): Move | null {
     const amount = Math.min(have, free);
     source.counts[cand.color] = have - amount;
     dest.counts[cand.color] = (dest.counts[cand.color] ?? 0) + amount;
-    return { from: cand.from, to: cand.to, color: cand.color, count: amount };
+    moves.push({ from: cand.from, to: cand.to, color: cand.color, count: amount });
+    if (single) break;
   }
 
-  return null;
+  return moves;
 }
 
 /**
