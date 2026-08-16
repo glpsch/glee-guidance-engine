@@ -185,8 +185,19 @@ export function resolveBoard(
 
     if (moves.length === 0) {
       moves.push(...makeRoomMoves(board, settings, active));
-      if (moves.length === 0) break;
+      if (moves.length === 0) {
+        // Rules 7/23 — the "active plate" bonus only applies while the placement
+        // is still resolving. Once nothing moves, drop it and keep going: the
+        // board is only stable when no movement remains under the plain
+        // hierarchy either, so consolidation is never left half-finished.
+        if (active !== null) {
+          active = null;
+          continue;
+        }
+        break;
+      }
     }
+
 
     // Rule 14 — completed plates stay put for this tick, then clear.
     const completed = findCompleted(board, capacity);
