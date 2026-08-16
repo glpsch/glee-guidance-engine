@@ -35,18 +35,23 @@ export function destinationRank(
   const canComplete = others === 0 && have + Math.min(free, incoming) >= capacity;
 
   return [
+    // 1. immediate completion
     canComplete ? 0 : 1,
-    // Within the completion tier, the plate that needs the fewest pieces wins
-    // (Rule 11 step 4 — largest matching group). This keeps a nearly finished
-    // cake from being starved by a newer plate that also could complete.
-    canComplete ? capacity - have : 0,
+    // 2. single-colour destination
     isSingleColor(plate, color) ? 0 : 1,
+    // 3. active / newly placed plate
     activeIndex === index ? 0 : 1,
+    // 4. largest matching group (also settles which of two completable plates
+    //    wins: the one nearest six needs the fewest pieces)
     -have,
+    // 5. fewest non-matching pieces
     others,
+    // 6. weighted spatial distance to (0,0)
     rowOf(board, index) * SPATIAL_WEIGHTS.row + colOf(board, index) * SPATIAL_WEIGHTS.column,
+    // 7. cake-type priority
     color,
   ];
+
 }
 
 export function compareRanks(a: number[], b: number[]): number {
