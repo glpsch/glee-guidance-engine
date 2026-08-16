@@ -26,7 +26,7 @@ export function destinationRank(
   activeIndex: number | null,
 ): number[] {
   const plate = board.cells[index];
-  if (!plate) return [9, 9, 9, 0, 0, 0, color];
+  if (!plate) return [9, 9, 9, 9, 0, 0, 0, color];
 
   const have = plate.counts[color] ?? 0;
   const free = freeSlots(plate, capacity);
