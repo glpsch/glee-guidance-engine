@@ -108,18 +108,32 @@ describe("Rules 5/25 — generation respects mix intensity and capacity", () => 
 describe("Rule 6 — plate lifecycle", () => {
   const s = mk(3, 3);
   it("clears a plate drained to zero pieces", () => {
+    // 1 is pure yellow, 4 is the active plate: yellow converges on 4 (step 3)
+    // and the emptied source position becomes free again
     const b = board(s, { 4: { [YELLOW]: 1 }, 1: { [YELLOW]: 3 } });
     const { finalBoard } = resolveBoard(b, s, 4);
-    expect(finalBoard.cells[4]).toBeNull();
-    expect(at(finalBoard, 1, YELLOW)).toBe(4);
+    expect(finalBoard.cells[1]).toBeNull();
+    expect(at(finalBoard, 4, YELLOW)).toBe(4);
   });
 
-  it("treats a full-but-mixed plate as a dead end, not a completion", () => {
+  it("treats a full-but-mixed plate as a dead end that can still shed pieces", () => {
+    // 5 yellow + 1 red is full and cannot complete; it may still send yellow to
+    // a pure yellow neighbour (Rule 9), which is how the board purifies itself
     const b = board(s, { 4: { [YELLOW]: 5, [RED]: 1 }, 1: { [YELLOW]: 2 } });
     const { finalBoard, completions } = resolveBoard(b, s, 4);
-    expect(completions).toBe(0);
-    expect(at(finalBoard, 4, YELLOW)).toBe(5);
-    expect(at(finalBoard, 1, YELLOW)).toBe(2);
+    expect(completions).toBe(1);
+    expect(at(finalBoard, 4, YELLOW)).toBe(1);
+    expect(at(finalBoard, 4, RED)).toBe(1);
+  });
+
+  it("never lets a plate exceed capacity", () => {
+    const b = board(s, { 4: { [YELLOW]: 3 }, 1: { [YELLOW]: 4 }, 7: { [YELLOW]: 4 } });
+    const { snapshots } = resolveBoard(b, s, 4);
+    snapshots.forEach((snap) => {
+      snap.board.cells.forEach((p) => {
+        if (p) expect(pieceCount(p)).toBeLessThanOrEqual(PLATE_CAPACITY);
+      });
+    });
   });
 });
 
@@ -176,24 +190,26 @@ describe("Rules 9/10 — single-colour destinations outrank mixed ones", () => {
 describe("Rule 11 — destination priority hierarchy", () => {
   const s = mk(3, 3);
 
-  it("step 1: completion wins over a bigger non-completing group", () => {
-    // source 4 has 2 yellow; A(1) completes with 2, B(7) is a larger group that cannot
-    const b = board(s, { 4: { [YELLOW]: 2 }, 1: { [YELLOW]: 4 }, 7: { [YELLOW]: 5, [RED]: 1 } });
-    const { finalBoard, completions } = resolveBoard(b, s, null);
+  it("step 1: completion outranks the active-plate preference", () => {
+    // without a completion the yellow would converge on the active plate (step 3);
+    // because 3 can reach six, the active plate gives its pieces away instead
+    const b = board(s, { 3: { [YELLOW]: 4 }, 4: { [YELLOW]: 2 } });
+    const { finalBoard, completions } = resolveBoard(b, s, 4);
     expect(completions).toBe(1);
-    expect(finalBoard.cells[1]).toBeNull();
-    expect(at(finalBoard, 7, YELLOW)).toBe(5);
+    expect(total(finalBoard, YELLOW)).toBe(0);
   });
 
   it("step 3: an equivalent active plate beats a non-active one", () => {
     // 4 is active and mixed; 1 and 7 are identical mixed plates
     const b = board(s, {
-      4: { [YELLOW]: 2, [RED]: 1 },
-      1: { [YELLOW]: 2, [RED]: 1 },
-      7: { [YELLOW]: 2, [RED]: 1 },
+      4: { [YELLOW]: 1, [BLUE]: 1 },
+      1: { [YELLOW]: 1, [GREEN]: 1 },
+      7: { [YELLOW]: 1, [GREEN]: 1 },
     });
     const { finalBoard } = resolveBoard(b, s, 4);
-    expect(at(finalBoard, 4, YELLOW)).toBe(6 - 1);
+    expect(at(finalBoard, 4, YELLOW)).toBe(3);
+    expect(at(finalBoard, 1, YELLOW)).toBe(0);
+    expect(at(finalBoard, 7, YELLOW)).toBe(0);
   });
 
   it("step 4: largest matching group wins", () => {
@@ -203,8 +219,10 @@ describe("Rule 11 — destination priority hierarchy", () => {
       7: { [YELLOW]: 1, [GREEN]: 1 },
     });
     const { finalBoard } = resolveBoard(b, s, null);
+    // 7's lone yellow joins the bigger group on 4 first, which then merges into 1
     expect(at(finalBoard, 1, YELLOW)).toBe(5);
-    expect(at(finalBoard, 7, YELLOW)).toBe(1);
+    expect(at(finalBoard, 7, YELLOW)).toBe(0);
+    expect(total(finalBoard, YELLOW)).toBe(6);
   });
 
   it("step 5: fewest non-matching pieces wins", () => {
@@ -247,8 +265,9 @@ describe("Rule 12 — maximum legal quantity + same-tick redirection", () => {
   it("moves the whole group, not one piece", () => {
     const b = board(s, { 4: { [YELLOW]: 3 }, 1: { [YELLOW]: 2 } });
     const { finalBoard } = resolveBoard(b, s, null);
-    expect(at(finalBoard, 1, YELLOW)).toBe(5);
-    expect(finalBoard.cells[4]).toBeNull();
+    // the larger group (step 4) wins, and all three pieces move at once
+    expect(at(finalBoard, 4, YELLOW)).toBe(5);
+    expect(finalBoard.cells[1]).toBeNull();
   });
 
   it("redirects the overflow to the next-best destination in the same cascade", () => {
