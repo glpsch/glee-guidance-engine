@@ -108,18 +108,32 @@ describe("Rules 5/25 — generation respects mix intensity and capacity", () => 
 describe("Rule 6 — plate lifecycle", () => {
   const s = mk(3, 3);
   it("clears a plate drained to zero pieces", () => {
+    // 1 is pure yellow, 4 is the active plate: yellow converges on 4 (step 3)
+    // and the emptied source position becomes free again
     const b = board(s, { 4: { [YELLOW]: 1 }, 1: { [YELLOW]: 3 } });
     const { finalBoard } = resolveBoard(b, s, 4);
-    expect(finalBoard.cells[4]).toBeNull();
-    expect(at(finalBoard, 1, YELLOW)).toBe(4);
+    expect(finalBoard.cells[1]).toBeNull();
+    expect(at(finalBoard, 4, YELLOW)).toBe(4);
   });
 
-  it("treats a full-but-mixed plate as a dead end, not a completion", () => {
+  it("treats a full-but-mixed plate as a dead end that can still shed pieces", () => {
+    // 5 yellow + 1 red is full and cannot complete; it may still send yellow to
+    // a pure yellow neighbour (Rule 9), which is how the board purifies itself
     const b = board(s, { 4: { [YELLOW]: 5, [RED]: 1 }, 1: { [YELLOW]: 2 } });
     const { finalBoard, completions } = resolveBoard(b, s, 4);
-    expect(completions).toBe(0);
-    expect(at(finalBoard, 4, YELLOW)).toBe(5);
-    expect(at(finalBoard, 1, YELLOW)).toBe(2);
+    expect(completions).toBe(1);
+    expect(at(finalBoard, 4, YELLOW)).toBe(1);
+    expect(at(finalBoard, 4, RED)).toBe(1);
+  });
+
+  it("never lets a plate exceed capacity", () => {
+    const b = board(s, { 4: { [YELLOW]: 3 }, 1: { [YELLOW]: 4 }, 7: { [YELLOW]: 4 } });
+    const { snapshots } = resolveBoard(b, s, 4);
+    snapshots.forEach((snap) => {
+      snap.board.cells.forEach((p) => {
+        if (p) expect(pieceCount(p)).toBeLessThanOrEqual(PLATE_CAPACITY);
+      });
+    });
   });
 });
 
@@ -176,24 +190,26 @@ describe("Rules 9/10 — single-colour destinations outrank mixed ones", () => {
 describe("Rule 11 — destination priority hierarchy", () => {
   const s = mk(3, 3);
 
-  it("step 1: completion wins over a bigger non-completing group", () => {
-    // source 4 has 2 yellow; A(1) completes with 2, B(7) is a larger group that cannot
-    const b = board(s, { 4: { [YELLOW]: 2 }, 1: { [YELLOW]: 4 }, 7: { [YELLOW]: 5, [RED]: 1 } });
-    const { finalBoard, completions } = resolveBoard(b, s, null);
+  it("step 1: completion outranks the active-plate preference", () => {
+    // without a completion the yellow would converge on the active plate (step 3);
+    // because 3 can reach six, the active plate gives its pieces away instead
+    const b = board(s, { 3: { [YELLOW]: 4 }, 4: { [YELLOW]: 2 } });
+    const { finalBoard, completions } = resolveBoard(b, s, 4);
     expect(completions).toBe(1);
-    expect(finalBoard.cells[1]).toBeNull();
-    expect(at(finalBoard, 7, YELLOW)).toBe(5);
+    expect(total(finalBoard, YELLOW)).toBe(0);
   });
 
   it("step 3: an equivalent active plate beats a non-active one", () => {
     // 4 is active and mixed; 1 and 7 are identical mixed plates
     const b = board(s, {
-      4: { [YELLOW]: 2, [RED]: 1 },
-      1: { [YELLOW]: 2, [RED]: 1 },
-      7: { [YELLOW]: 2, [RED]: 1 },
+      4: { [YELLOW]: 1, [BLUE]: 1 },
+      1: { [YELLOW]: 1, [GREEN]: 1 },
+      7: { [YELLOW]: 1, [GREEN]: 1 },
     });
     const { finalBoard } = resolveBoard(b, s, 4);
-    expect(at(finalBoard, 4, YELLOW)).toBe(6 - 1);
+    expect(at(finalBoard, 4, YELLOW)).toBe(3);
+    expect(at(finalBoard, 1, YELLOW)).toBe(0);
+    expect(at(finalBoard, 7, YELLOW)).toBe(0);
   });
 
   it("step 4: largest matching group wins", () => {
@@ -203,8 +219,10 @@ describe("Rule 11 — destination priority hierarchy", () => {
       7: { [YELLOW]: 1, [GREEN]: 1 },
     });
     const { finalBoard } = resolveBoard(b, s, null);
+    // 7's lone yellow joins the bigger group on 4 first, which then merges into 1
     expect(at(finalBoard, 1, YELLOW)).toBe(5);
-    expect(at(finalBoard, 7, YELLOW)).toBe(1);
+    expect(at(finalBoard, 7, YELLOW)).toBe(0);
+    expect(total(finalBoard, YELLOW)).toBe(6);
   });
 
   it("step 5: fewest non-matching pieces wins", () => {
@@ -247,8 +265,9 @@ describe("Rule 12 — maximum legal quantity + same-tick redirection", () => {
   it("moves the whole group, not one piece", () => {
     const b = board(s, { 4: { [YELLOW]: 3 }, 1: { [YELLOW]: 2 } });
     const { finalBoard } = resolveBoard(b, s, null);
-    expect(at(finalBoard, 1, YELLOW)).toBe(5);
-    expect(finalBoard.cells[4]).toBeNull();
+    // the larger group (step 4) wins, and all three pieces move at once
+    expect(at(finalBoard, 4, YELLOW)).toBe(5);
+    expect(finalBoard.cells[1]).toBeNull();
   });
 
   it("redirects the overflow to the next-best destination in the same cascade", () => {
@@ -470,5 +489,63 @@ describe("Rule 28 — game over detection", () => {
     expect(isBoardFull(b)).toBe(true);
     b.cells[3] = null;
     expect(isBoardFull(b)).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------- Fuzz
+
+describe("Invariants — randomised boards", () => {
+  function randomBoard(s: GameSettings): Board {
+    const b = createBoard(s.boardWidth, s.boardHeight);
+    for (let i = 0; i < b.cells.length; i += 1) {
+      if (Math.random() < 0.35) continue;
+      const counts = emptyCounts(s.cakeTypes);
+      const pieces = 1 + Math.floor(Math.random() * PLATE_CAPACITY);
+      for (let p = 0; p < pieces; p += 1) {
+        const c = Math.floor(Math.random() * s.cakeTypes);
+        counts[c] = (counts[c] ?? 0) + 1;
+      }
+      b.cells[i] = makePlate(counts);
+    }
+    return b;
+  }
+
+  it("conserves pieces, respects capacity, terminates and stays deterministic", () => {
+    for (let run = 0; run < 300; run += 1) {
+      const s = mk(4, 5, { resolutionMode: run % 2 ? "sequential" : "simultaneous" });
+      const start = randomBoard(s);
+      const active = start.cells.findIndex((c) => c !== null);
+      const before = start.cells.reduce((sum, p) => sum + (p ? pieceCount(p) : 0), 0);
+
+      const res = resolveBoard(start, s, active === -1 ? null : active);
+      const after = res.finalBoard.cells.reduce((sum, p) => sum + (p ? pieceCount(p) : 0), 0);
+
+      // pieces are only ever removed by a completed six-piece cake
+      expect(after).toBe(before - res.completions * PLATE_CAPACITY);
+
+      res.snapshots.forEach((snap) => {
+        snap.board.cells.forEach((p) => {
+          if (p) {
+            expect(pieceCount(p)).toBeLessThanOrEqual(PLATE_CAPACITY);
+            expect(p.counts.every((n) => n >= 0)).toBe(true);
+          }
+        });
+      });
+
+      // no empty plate objects survive (Rule 6)
+      res.finalBoard.cells.forEach((p) => {
+        if (p) expect(pieceCount(p)).toBeGreaterThan(0);
+      });
+
+      // the cascade always reaches a stable board (Rules 22/23)
+      expect(resolveBoard(res.finalBoard, s, null).snapshots.length).toBe(0);
+
+      // determinism (Rule 24)
+      const again = resolveBoard(start, s, active === -1 ? null : active);
+      expect(again.finalBoard.cells.map((p) => p?.counts)).toEqual(
+        res.finalBoard.cells.map((p) => p?.counts),
+      );
+      expect(again.completions).toBe(res.completions);
+    }
   });
 });
