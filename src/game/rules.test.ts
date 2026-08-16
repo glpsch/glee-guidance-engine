@@ -491,3 +491,61 @@ describe("Rule 28 — game over detection", () => {
     expect(isBoardFull(b)).toBe(false);
   });
 });
+
+// ---------------------------------------------------------------- Fuzz
+
+describe("Invariants — randomised boards", () => {
+  function randomBoard(s: GameSettings): Board {
+    const b = createBoard(s.boardWidth, s.boardHeight);
+    for (let i = 0; i < b.cells.length; i += 1) {
+      if (Math.random() < 0.35) continue;
+      const counts = emptyCounts(s.cakeTypes);
+      const pieces = 1 + Math.floor(Math.random() * PLATE_CAPACITY);
+      for (let p = 0; p < pieces; p += 1) {
+        const c = Math.floor(Math.random() * s.cakeTypes);
+        counts[c] = (counts[c] ?? 0) + 1;
+      }
+      b.cells[i] = makePlate(counts);
+    }
+    return b;
+  }
+
+  it("conserves pieces, respects capacity, terminates and stays deterministic", () => {
+    for (let run = 0; run < 300; run += 1) {
+      const s = mk(4, 5, { resolutionMode: run % 2 ? "sequential" : "simultaneous" });
+      const start = randomBoard(s);
+      const active = start.cells.findIndex((c) => c !== null);
+      const before = start.cells.reduce((sum, p) => sum + (p ? pieceCount(p) : 0), 0);
+
+      const res = resolveBoard(start, s, active === -1 ? null : active);
+      const after = res.finalBoard.cells.reduce((sum, p) => sum + (p ? pieceCount(p) : 0), 0);
+
+      // pieces are only ever removed by a completed six-piece cake
+      expect(after).toBe(before - res.completions * PLATE_CAPACITY);
+
+      res.snapshots.forEach((snap) => {
+        snap.board.cells.forEach((p) => {
+          if (p) {
+            expect(pieceCount(p)).toBeLessThanOrEqual(PLATE_CAPACITY);
+            expect(p.counts.every((n) => n >= 0)).toBe(true);
+          }
+        });
+      });
+
+      // no empty plate objects survive (Rule 6)
+      res.finalBoard.cells.forEach((p) => {
+        if (p) expect(pieceCount(p)).toBeGreaterThan(0);
+      });
+
+      // the cascade always reaches a stable board (Rules 22/23)
+      expect(resolveBoard(res.finalBoard, s, null).snapshots.length).toBe(0);
+
+      // determinism (Rule 24)
+      const again = resolveBoard(start, s, active === -1 ? null : active);
+      expect(again.finalBoard.cells.map((p) => p?.counts)).toEqual(
+        res.finalBoard.cells.map((p) => p?.counts),
+      );
+      expect(again.completions).toBe(res.completions);
+    }
+  });
+});
