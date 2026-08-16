@@ -37,13 +37,19 @@ export function destinationRank(
   return [
     // 1. immediate completion
     canComplete ? 0 : 1,
+    // 4-within-1. Among two destinations that BOTH complete, Rule 11 step 4
+    // (largest matching group) is applied before steps 2/3: the plate nearest
+    // six needs the fewest pieces, so honouring it first lets one source feed
+    // several completions in the same tick (Rules 12/14 stepping stone) instead
+    // of dumping everything into the active plate and stranding the rest.
+    canComplete ? capacity - have : 0,
     // 2. single-colour destination
     isSingleColor(plate, color) ? 0 : 1,
     // 3. active / newly placed plate
     activeIndex === index ? 0 : 1,
-    // 4. largest matching group (also settles which of two completable plates
-    //    wins: the one nearest six needs the fewest pieces)
+    // 4. largest matching group
     -have,
+
     // 5. fewest non-matching pieces
     others,
     // 6. weighted spatial distance to (0,0)
