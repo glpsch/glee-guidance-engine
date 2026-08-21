@@ -62,8 +62,18 @@ export function collectCandidates(
  * the hierarchy within the same tick. Because the candidate list is already
  * globally sorted, walking it in order gives exactly that behaviour, and a
  * plate that has just filled is simply a zero-capacity destination (Rule 14).
+ *
+ * Every candidate is RE-VALIDATED against the live board before it is applied:
+ * earlier moves in the same pass change the ranks the list was built from, and
+ * a stale entry could otherwise drain a plate that has just completed (Rule 14)
+ * or push pieces to a destination that is no longer an improvement (Rule 11).
  */
-function applyPass(board: Board, candidates: Candidate[], single: boolean): Move[] {
+function applyPass(
+  board: Board,
+  candidates: Candidate[],
+  single: boolean,
+  activeIndex: number | null,
+): Move[] {
   const capacity = PLATE_CAPACITY;
   const moves: Move[] = [];
 
@@ -72,11 +82,20 @@ function applyPass(board: Board, candidates: Candidate[], single: boolean): Move
     const dest = board.cells[cand.to];
     if (!source || !dest) continue;
 
+    // Rule 14 — a plate holding a finished cake is locked; it clears this tick.
+    if (completedType(source, capacity) !== null) continue;
+    if (completedType(dest, capacity) !== null) continue;
+
     const have = source.counts[cand.color] ?? 0;
     const free = freeSlots(dest, capacity);
     if (have <= 0 || free <= 0) continue;
+    if ((dest.counts[cand.color] ?? 0) <= 0) continue;
 
     const amount = Math.min(have, free);
+    const destRank = destinationRank(board, cand.to, cand.color, amount, capacity, activeIndex);
+    const srcRank = destinationRank(board, cand.from, cand.color, 0, capacity, activeIndex);
+    if (compareRanks(destRank, srcRank) >= 0) continue;
+
     source.counts[cand.color] = have - amount;
     dest.counts[cand.color] = (dest.counts[cand.color] ?? 0) + amount;
     moves.push({ from: cand.from, to: cand.to, color: cand.color, count: amount });
@@ -85,6 +104,7 @@ function applyPass(board: Board, candidates: Candidate[], single: boolean): Move
 
   return moves;
 }
+
 
 /**
  * Rule 17 — relocate a lone off-colour obstruction when doing so lets a
