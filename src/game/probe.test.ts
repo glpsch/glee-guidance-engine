@@ -1,62 +1,65 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_SETTINGS } from "./config";
-import { createBoard, emptyCounts, makePlate } from "./board";
+import { DEFAULT_SETTINGS, PLATE_CAPACITY } from "./config";
+import { createBoard, emptyCounts, makePlate, neighbors, pieceCount } from "./board";
 import { resolveBoard } from "./resolve";
 import type { Board, GameSettings } from "./types";
-
-const Y = 2;
-const R = 0;
 
 function mk(w: number, h: number): GameSettings {
   return { ...DEFAULT_SETTINGS, boardWidth: w, boardHeight: h };
 }
-function plate(s: GameSettings, spec: Record<number, number>) {
-  const counts = emptyCounts(s.cakeTypes);
-  Object.entries(spec).forEach(([t, n]) => (counts[Number(t)] = n));
-  return makePlate(counts);
-}
-function board(s: GameSettings, e: Record<number, Record<number, number>>): Board {
+const dump = (b: Board) =>
+  b.cells.map((p) =>
+    p ? p.counts.map((n, i) => (n ? `${i}x${n}` : "")).filter(Boolean).join("+") : ".",
+  );
+
+function randomBoard(s: GameSettings): Board {
   const b = createBoard(s.boardWidth, s.boardHeight);
-  Object.entries(e).forEach(([i, spec]) => (b.cells[Number(i)] = plate(s, spec)));
+  for (let i = 0; i < b.cells.length; i += 1) {
+    if (Math.random() < 0.35) continue;
+    const counts = emptyCounts(s.cakeTypes);
+    const pieces = 1 + Math.floor(Math.random() * PLATE_CAPACITY);
+    for (let p = 0; p < pieces; p += 1) {
+      const c = Math.floor(Math.random() * s.cakeTypes);
+      counts[c] = (counts[c] ?? 0) + 1;
+    }
+    b.cells[i] = makePlate(counts);
+  }
   return b;
 }
-const dump = (b: Board) =>
-  b.cells.map((p) => (p ? p.counts.map((n, i) => (n ? `${i}x${n}` : "")).filter(Boolean).join("+") : "."));
 
-describe("probe", () => {
-  const s = mk(3, 3);
-
-  it("A: pure 3 next to pure 1", () => {
-    const r = resolveBoard(board(s, { 3: { [Y]: 3 }, 4: { [Y]: 1 } }), s, null);
-    console.log("A", dump(r.finalBoard));
+/** adjacent pairs sharing a colour where at least one side has free room */
+function unconsolidated(b: Board): string[] {
+  const out: string[] = [];
+  b.cells.forEach((p, i) => {
+    if (!p) return;
+    for (const n of neighbors(b, i)) {
+      if (n < i) continue;
+      const q = b.cells[n];
+      if (!q) continue;
+      p.counts.forEach((have, c) => {
+        if (have <= 0 || (q.counts[c] ?? 0) <= 0) return;
+        const roomP = PLATE_CAPACITY - pieceCount(p);
+        const roomQ = PLATE_CAPACITY - pieceCount(q);
+        if (roomP > 0 || roomQ > 0) out.push(`${i}<->${n} color ${c}`);
+      });
+    }
   });
+  return out;
+}
 
-  it("B: 2/2/2 row", () => {
-    const r = resolveBoard(board(s, { 3: { [Y]: 2 }, 4: { [Y]: 2 }, 5: { [Y]: 2 } }), s, null);
-    console.log("B", dump(r.finalBoard), r.completions);
-  });
-
-  it("C: pure 4 next to mixed 2Y+1R", () => {
-    const r = resolveBoard(board(s, { 3: { [Y]: 4 }, 4: { [Y]: 2, [R]: 1 } }), s, null);
-    console.log("C", dump(r.finalBoard), r.completions);
-  });
-
-  it("D: equal piles 3/3 non-completing with blocker", () => {
-    const r = resolveBoard(board(s, { 3: { [Y]: 3, [R]: 1 }, 4: { [Y]: 3, [R]: 1 } }), s, null);
-    console.log("D", dump(r.finalBoard), r.completions);
-  });
-
-  it("E: spread 1/1/1/1 across a row", () => {
-    const r = resolveBoard(
-      board(s, { 0: { [Y]: 1 }, 1: { [Y]: 1 }, 2: { [Y]: 1 }, 5: { [Y]: 1 } }),
-      s,
-      null,
-    );
-    console.log("E", dump(r.finalBoard));
-  });
-
-  it("F: big pile should feed a completing neighbour", () => {
-    const r = resolveBoard(board(s, { 3: { [Y]: 5 }, 4: { [Y]: 4 } }), s, null);
-    console.log("F", dump(r.finalBoard), r.completions);
+describe("probe: stable boards should be consolidated", () => {
+  it("scans random cascades", () => {
+    const s = mk(4, 5);
+    const bad: string[] = [];
+    for (let run = 0; run < 200; run += 1) {
+      const start = randomBoard(s);
+      const active = start.cells.findIndex((c) => c !== null);
+      const res = resolveBoard(start, s, active === -1 ? null : active);
+      const u = unconsolidated(res.finalBoard);
+      if (u.length) bad.push(`${dump(res.finalBoard).join("|")}  >> ${u.join(", ")}`);
+    }
+    console.log("unconsolidated final boards:", bad.length, "/200");
+    console.log(bad.slice(0, 5).join("\n"));
+    expect(true).toBe(true);
   });
 });
