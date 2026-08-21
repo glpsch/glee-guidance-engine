@@ -258,6 +258,72 @@ describe("Rule 11 — destination priority hierarchy", () => {
   });
 });
 
+// ------------------------------------------------- Rule 11 — the movement gate
+
+/**
+ * `collectCandidates` only accepts a move when the destination outranks the
+ * SOURCE, scored as a destination with `incoming = 0`:
+ *
+ *   const srcRank = destinationRank(board, from, color, 0, capacity, activeIndex);
+ *
+ * The source is deliberately scored BEFORE the move (still holding its pieces)
+ * while the destination is scored AFTER it. That asymmetry is the termination
+ * guarantee, not a bug: scoring the source post-move would leave it empty and
+ * therefore always worse, so every pair of adjacent same-colour plates would
+ * become mutually attractive and the cascade could ping-pong forever.
+ *
+ * The practical consequence — pieces always flow from the weaker pile to the
+ * stronger one, and a pair where neither side strictly outranks the other is
+ * frozen — is asserted below.
+ */
+describe("Rule 11 — the source is scored as a destination (movement gate)", () => {
+  const s = mk(3, 3);
+
+  it("lets the smaller pile feed the larger one, never the reverse", () => {
+    const b = board(s, { 3: { [YELLOW]: 3 }, 4: { [YELLOW]: 1 } });
+    const { finalBoard } = resolveBoard(b, s, null);
+    expect(at(finalBoard, 3, YELLOW)).toBe(4);
+    expect(finalBoard.cells[4]).toBeNull();
+  });
+
+  it("still overrides the larger-pile preference for a completion", () => {
+    // 3 holds more yellow than 4, yet 4 can reach six, so 3 gives pieces away
+    const b = board(s, { 3: { [YELLOW]: 5 }, 4: { [YELLOW]: 4 } });
+    const { finalBoard, completions } = resolveBoard(b, s, null);
+    expect(completions).toBe(1);
+    expect(total(finalBoard, YELLOW)).toBe(3);
+  });
+
+  it("freezes a pair where neither side strictly outranks the other", () => {
+    // both plates: 3 yellow + 1 red, one free slot each — moving either way is a
+    // sideways step, so the stable board keeps them apart (no cycling)
+    const b = board(s, {
+      3: { [YELLOW]: 3, [RED]: 1 },
+      4: { [YELLOW]: 3, [RED]: 1 },
+    });
+    const { finalBoard, completions } = resolveBoard(b, s, null);
+    expect(completions).toBe(1);
+    // the yellow six completes; the two reds are left where the hierarchy puts them
+    expect(total(finalBoard, YELLOW)).toBe(0);
+    expect(total(finalBoard, RED)).toBe(2);
+  });
+
+  it("chains a spread-out colour onto one plate", () => {
+    const b = board(s, {
+      0: { [YELLOW]: 1 },
+      1: { [YELLOW]: 1 },
+      2: { [YELLOW]: 1 },
+      5: { [YELLOW]: 1 },
+    });
+    const { finalBoard } = resolveBoard(b, s, null);
+    const holders = finalBoard.cells.filter((p) => (p?.counts[YELLOW] ?? 0) > 0);
+    expect(holders.length).toBe(1);
+    expect(at(finalBoard, 0, YELLOW)).toBe(4);
+  });
+});
+
+
+
 // ---------------------------------------------------------------- Rule 12
 
 describe("Rule 12 — maximum legal quantity + same-tick redirection", () => {
