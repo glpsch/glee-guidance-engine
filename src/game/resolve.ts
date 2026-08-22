@@ -197,7 +197,7 @@ export function resolveBoard(
     // plate before the tick ends (stepping stone).
     for (let pass = 0; pass < MAX_CASCADE_TICKS; pass += 1) {
       const candidates = collectCandidates(board, settings, active);
-      const applied = applyPass(board, candidates, sequential);
+      const applied = applyPass(board, candidates, sequential, active);
       if (applied.length === 0) break;
       moves.push(...applied);
       if (sequential) break;
