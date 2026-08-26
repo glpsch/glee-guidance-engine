@@ -374,6 +374,17 @@ describe("Rules 13/14 — completion priority and stepping stone", () => {
     expect(total(finalBoard, YELLOW)).toBe(1);
   });
 
+  it("completes two cakes from 4 / 4 / 4 by serving the dead end first", () => {
+    // The active middle plate could complete itself from either side, but doing
+    // so strands the rest. Feeding the neighbour that has no other feeder first
+    // leaves the middle free to be completed by the remaining neighbour.
+    const b = board(s, { 3: { [YELLOW]: 4 }, 4: { [YELLOW]: 4 }, 5: { [YELLOW]: 4 } });
+    const { completions, finalBoard } = resolveBoard(b, s, 4);
+    expect(completions).toBe(2);
+    expect(total(finalBoard, YELLOW)).toBe(0);
+  });
+
+
   it("does not strand pieces on a source when a completed plate blocks them", () => {
     // A(3)=2Y, NEW(4)=5Y, B(5)=2Y — NEW completes, remaining 3 yellow cannot reach
     // each other, so they simply stay put (spec Rule 14 example)

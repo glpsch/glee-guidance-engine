@@ -1,6 +1,24 @@
 import { SPATIAL_WEIGHTS } from "./config";
-import { colOf, freeSlots, isSingleColor, nonMatching, rowOf } from "./board";
+import { colOf, freeSlots, isSingleColor, neighbors, nonMatching, rowOf } from "./board";
 import type { Board, CakeType } from "./types";
+
+/**
+ * How many OTHER neighbouring plates could still feed this colour here.
+ * Used only to break ties between two plates that can both complete: the plate
+ * with fewer alternative feeders is the dead end, so it must be served first —
+ * the "hub" can still be completed afterwards by its remaining neighbour.
+ * Without this, a 4 / 4 / 4 row completes once and strands the rest; with it,
+ * the row completes twice.
+ */
+function feederCount(board: Board, index: number, color: CakeType, exclude: number | null): number {
+  let n = 0;
+  for (const nb of neighbors(board, index)) {
+    if (nb === exclude) continue;
+    const plate = board.cells[nb];
+    if (plate && (plate.counts[color] ?? 0) > 0) n += 1;
+  }
+  return n;
+}
 
 /**
  * Rule 11 — the destination priority hierarchy.
@@ -24,9 +42,10 @@ export function destinationRank(
   incoming: number,
   capacity: number,
   activeIndex: number | null,
+  counterpart: number | null = null,
 ): number[] {
   const plate = board.cells[index];
-  if (!plate) return [9, 9, 9, 9, 0, 0, 0, color];
+  if (!plate) return [9, 9, 9, 9, 9, 0, 0, 0, color];
 
   const have = plate.counts[color] ?? 0;
   const free = freeSlots(plate, capacity);
@@ -43,6 +62,8 @@ export function destinationRank(
     // several completions in the same tick (Rules 12/14 stepping stone) instead
     // of dumping everything into the active plate and stranding the rest.
     canComplete ? capacity - have : 0,
+    // 1b. Still within the completion tier: serve the dead end before the hub.
+    canComplete ? feederCount(board, index, color, counterpart) : 0,
     // 2. single-colour destination
     isSingleColor(plate, color) ? 0 : 1,
     // 3. active / newly placed plate
@@ -59,6 +80,7 @@ export function destinationRank(
   ];
 
 }
+
 
 export function compareRanks(a: number[], b: number[]): number {
   for (let i = 0; i < Math.max(a.length, b.length); i += 1) {

@@ -44,8 +44,9 @@ export function collectCandidates(
         if (free <= 0) continue;
 
         const movable = Math.min(have, free);
-        const destRank = destinationRank(board, to, color, movable, capacity, activeIndex);
-        const srcRank = destinationRank(board, from, color, 0, capacity, activeIndex);
+        const destRank = destinationRank(board, to, color, movable, capacity, activeIndex, from);
+        const srcRank = destinationRank(board, from, color, 0, capacity, activeIndex, to);
+
         if (compareRanks(destRank, srcRank) >= 0) continue;
 
         out.push({ from, to, color, available: have, key: [...destRank, from, color] });
