@@ -19,7 +19,15 @@ const GREEN = 3;
 const BLUE = 4;
 
 function mk(width: number, height: number, extra: Partial<GameSettings> = {}): GameSettings {
-  return { ...DEFAULT_SETTINGS, boardWidth: width, boardHeight: height, ...extra };
+  // Rule-by-rule cases are written against simultaneous batches; sequential
+  // mode is exercised explicitly where it matters.
+  return {
+    ...DEFAULT_SETTINGS,
+    resolutionMode: "simultaneous",
+    boardWidth: width,
+    boardHeight: height,
+    ...extra,
+  };
 }
 
 function plate(s: GameSettings, spec: Record<number, number>) {
