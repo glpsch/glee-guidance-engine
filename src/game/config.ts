@@ -15,7 +15,7 @@ export const DEFAULT_SETTINGS: GameSettings = {
   cakeTypes: 6,
   startingPlates: 0,
   mixIntensity: "easy",
-  resolutionMode: "simultaneous",
+  resolutionMode: "sequential",
 };
 
 /** Rule 11, step 6 — weighted distance to the top-left corner. */
@@ -45,10 +45,10 @@ export const STARTING_PIECE_COUNT = { min: 1, max: 4 };
 export const SAVED_SCORE_COUNT = 5;
 
 /** Milliseconds per animated resolution tick (Rule 22 pacing). */
-export const TICK_DURATION_MS = 700;
+export const TICK_DURATION_MS = 520;
 
 /** Extra pause before a completed plate clears from the board (Rule 14). */
-export const COMPLETION_HOLD_MS = 900;
+export const COMPLETION_HOLD_MS = 800;
 
 /**
  * Rule 16 safety valve — hard ceiling on cascade passes.

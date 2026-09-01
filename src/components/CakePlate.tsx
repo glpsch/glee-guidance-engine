@@ -39,16 +39,29 @@ export function CakePlate({ plate, capacity, size = 64, className, completing }:
         const start = -Math.PI / 2 + i * step;
         return (
           <path
-            key={`${plate.id}-${i}`}
+            key={`${plate.id}-${i}-${type}`}
             d={wedgePath(cx, cy, r, start, start + step)}
             fill={CAKE_TYPES[type % CAKE_TYPES.length]?.color}
             stroke="var(--ink)"
             strokeWidth={size * 0.045}
             strokeLinejoin="round"
+            className="animate-wedge-in"
+            style={{ transformOrigin: "center", transformBox: "fill-box" }}
           />
         );
       })}
-      <circle cx={cx} cy={cy} r={size * 0.055} fill="var(--ink)" />
+      {completing && (
+        <circle
+          cx={cx}
+          cy={cy}
+          r={r}
+          fill="none"
+          stroke="var(--ink)"
+          strokeWidth={size * 0.06}
+          className="animate-pop-ring"
+          style={{ transformOrigin: "center", transformBox: "fill-box" }}
+        />
+      )}
     </svg>
   );
 }
