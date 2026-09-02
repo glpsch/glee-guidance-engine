@@ -53,16 +53,30 @@ export function destinationRank(
 
   const canComplete = others === 0 && have + Math.min(free, incoming) >= capacity;
 
+  // Pieces of this colour reachable in the immediate neighbourhood. When they
+  // can only ever make ONE cake, there is nothing to strand, so the freshly
+  // placed plate may claim the completion. When two or more cakes are in play
+  // the stepping-stone ordering below must win instead.
+  const cluster =
+    have +
+    neighbors(board, index).reduce((sum, n) => {
+      const nb = board.cells[n];
+      return sum + (nb ? (nb.counts[color] ?? 0) : 0);
+    }, 0);
+
   return [
     // 1. immediate completion
     canComplete ? 0 : 1,
-    // 4-within-1. Among two destinations that BOTH complete, Rule 11 step 4
-    // (largest matching group) is applied before steps 2/3: the plate nearest
-    // six needs the fewest pieces, so honouring it first lets one source feed
-    // several completions in the same tick (Rules 12/14 stepping stone) instead
-    // of dumping everything into the active plate and stranding the rest.
+    // 1a. Within the completion tier the active / newly placed plate wins
+    // before group size is considered: a freshly placed single-colour plate
+    // completes on itself rather than feeding a bigger neighbour — but only
+    // when no second cake is possible nearby.
+    canComplete && activeIndex === index && cluster < capacity * 2 ? 0 : 1,
+    // 1b. Among the remaining destinations that BOTH complete, the plate
+    // nearest six needs the fewest pieces, so honouring it first lets one
+    // source feed several completions in the same tick (stepping stone).
     canComplete ? capacity - have : 0,
-    // 1b. Still within the completion tier: serve the dead end before the hub.
+    // 1c. Still within the completion tier: serve the dead end before the hub.
     canComplete ? feederCount(board, index, color, counterpart) : 0,
     // 2. single-colour destination
     isSingleColor(plate, color) ? 0 : 1,
