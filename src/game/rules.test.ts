@@ -344,15 +344,17 @@ describe("Rule 12 — maximum legal quantity + same-tick redirection", () => {
     expect(finalBoard.cells[1]).toBeNull();
   });
 
-  it("redirects the overflow to the next-best destination in the same cascade", () => {
-    // row 3-4-5: dest 3 completes with 1, leftovers must merge instead of stalling
+  it("lets the active plate claim the completion when no second cake is possible", () => {
+    // row 3-4-5: 10 yellow in play, so only one cake can ever be made and the
+    // newly placed plate (4) takes priority over the larger neighbour (3).
     const b = board(s, { 3: { [YELLOW]: 5 }, 4: { [YELLOW]: 3 }, 5: { [YELLOW]: 2 } });
     const { finalBoard, completions } = resolveBoard(b, s, 4);
     expect(completions).toBe(1);
     expect(total(finalBoard, YELLOW)).toBe(4);
-    // the four leftovers must be consolidated on a single plate, not split
-    const plates = finalBoard.cells.filter((p) => (p?.counts[YELLOW] ?? 0) > 0);
-    expect(plates.length).toBe(1);
+    // plate 4 completed and cleared, leaving 2 + 2 on the now-isolated ends
+    expect(finalBoard.cells[4]).toBeNull();
+    expect(at(finalBoard, 3, YELLOW)).toBe(2);
+    expect(at(finalBoard, 5, YELLOW)).toBe(2);
   });
 });
 
