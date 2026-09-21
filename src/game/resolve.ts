@@ -49,10 +49,20 @@ export function collectCandidates(
 
         if (compareRanks(destRank, srcRank) >= 0) continue;
 
+        // Rule 13 — keep the stepping stone alive. Moving EVERY piece of this
+        // colour off the source deletes the only route other neighbours have
+        // to reach `to`, so the colour strands (and the bridge plate may empty
+        // and clear entirely). Wait until those neighbours have fed through,
+        // unless the move completes a cake right now.
+        const wouldEmpty = movable >= have;
+        const completesNow = (dest.counts[color] ?? 0) + movable >= capacity;
+        if (wouldEmpty && !completesNow && isBridge(board, from, to, color)) continue;
+
         out.push({ from, to, color, available: have, key: [...destRank, from, color] });
       }
     });
   });
+
 
   out.sort((a, b) => compareRanks(a.key, b.key));
   return out;
