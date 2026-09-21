@@ -639,3 +639,24 @@ describe("Invariants — randomised boards", () => {
     }
   });
 });
+
+// ------------------------------------- Rule 13 — the bridge plate stays open
+
+describe("Rule 13 — a stepping stone is not emptied while others depend on it", () => {
+  const s = mk(3, 3);
+
+  it("resolves both colours before the middle plate clears", () => {
+    // Middle plate (active) is the only route between the red pieces at 5 / 7
+    // and the red pile at 1. If it sheds its red immediately, yellow fills it,
+    // it completes, clears, and the reds are stranded.
+    const b = board(s, {
+      1: { [RED]: 4 },
+      3: { [YELLOW]: 3 },
+      4: { [RED]: 1, [YELLOW]: 1 },
+      5: { [RED]: 1, [YELLOW]: 2 },
+      7: { [RED]: 1, [YELLOW]: 3 },
+    });
+    const { completions } = resolveBoard(b, s, 4);
+    expect(completions).toBe(2);
+  });
+});
