@@ -18,6 +18,59 @@ interface Candidate {
 }
 
 /**
+ * Would emptying `from` of `color` cut some pieces off from `to`?
+ *
+ * Walks the network of plates that hold this colour, starting at `to` and
+ * pretending `from` no longer holds any. Any neighbour of `from` that still
+ * holds the colour but can no longer be reached depends on `from` as a
+ * stepping stone, so the source must keep its pieces until those neighbours
+ * have fed through — otherwise the bridge plate empties (or completes and
+ * clears) and the rest of that colour is stranded.
+ */
+function isBridge(
+  board: Board,
+  from: number,
+  to: number,
+  color: CakeType,
+  capacity: number,
+  activeIndex: number | null,
+): boolean {
+  const holds = (i: number) => {
+    const p = board.cells[i];
+    return !!p && (p.counts[color] ?? 0) > 0;
+  };
+  const cutoffCandidates = neighbors(board, from).filter((n) => n !== to && holds(n));
+  if (cutoffCandidates.length === 0) return false;
+
+  const seen = new Set<number>([to, from]);
+  const queue = [to];
+  while (queue.length) {
+    const cur = queue.shift()!;
+    for (const n of neighbors(board, cur)) {
+      if (seen.has(n) || !holds(n)) continue;
+      seen.add(n);
+      queue.push(n);
+    }
+  }
+
+  // Only a neighbour that could actually feed INTO the source is worth waiting
+  // for; one that the hierarchy would never move anyway is dead weight and
+  // must not freeze the source in place.
+  const canFeed = (n: number) => {
+    const source = board.cells[n]!;
+    const bridgePlate = board.cells[from]!;
+    const movable = Math.min(source.counts[color] ?? 0, freeSlots(bridgePlate, capacity));
+    if (movable <= 0) return false;
+    const inRank = destinationRank(board, from, color, movable, capacity, activeIndex, n);
+    const outRank = destinationRank(board, n, color, 0, capacity, activeIndex, from);
+    return compareRanks(inRank, outRank) < 0;
+  };
+
+  return cutoffCandidates.some((n) => !seen.has(n) && canFeed(n));
+}
+
+
+/**
  * Rule 19 — one unified candidate list across every colour.
  * A movement is legal only when the destination is a strictly better
  * destination for that colour than the source itself (Rule 11). That single
@@ -49,10 +102,20 @@ export function collectCandidates(
 
         if (compareRanks(destRank, srcRank) >= 0) continue;
 
+        // Rule 13 — keep the stepping stone alive. Moving EVERY piece of this
+        // colour off the source deletes the only route other neighbours have
+        // to reach `to`, so the colour strands (and the bridge plate may empty
+        // and clear entirely). Wait until those neighbours have fed through,
+        // unless the move completes a cake right now.
+        const wouldEmpty = movable >= have;
+        const completesNow = (dest.counts[color] ?? 0) + movable >= capacity;
+        if (wouldEmpty && !completesNow && isBridge(board, from, to, color, capacity, activeIndex)) continue;
+
         out.push({ from, to, color, available: have, key: [...destRank, from, color] });
       }
     });
   });
+
 
   out.sort((a, b) => compareRanks(a.key, b.key));
   return out;
