@@ -27,7 +27,14 @@ interface Candidate {
  * have fed through — otherwise the bridge plate empties (or completes and
  * clears) and the rest of that colour is stranded.
  */
-function isBridge(board: Board, from: number, to: number, color: CakeType): boolean {
+function isBridge(
+  board: Board,
+  from: number,
+  to: number,
+  color: CakeType,
+  capacity: number,
+  activeIndex: number | null,
+): boolean {
   const holds = (i: number) => {
     const p = board.cells[i];
     return !!p && (p.counts[color] ?? 0) > 0;
@@ -45,7 +52,21 @@ function isBridge(board: Board, from: number, to: number, color: CakeType): bool
       queue.push(n);
     }
   }
-  return cutoffCandidates.some((n) => !seen.has(n));
+
+  // Only a neighbour that could actually feed INTO the source is worth waiting
+  // for; one that the hierarchy would never move anyway is dead weight and
+  // must not freeze the source in place.
+  const canFeed = (n: number) => {
+    const source = board.cells[n]!;
+    const bridgePlate = board.cells[from]!;
+    const movable = Math.min(source.counts[color] ?? 0, freeSlots(bridgePlate, capacity));
+    if (movable <= 0) return false;
+    const inRank = destinationRank(board, from, color, movable, capacity, activeIndex, n);
+    const outRank = destinationRank(board, n, color, 0, capacity, activeIndex, from);
+    return compareRanks(inRank, outRank) < 0;
+  };
+
+  return cutoffCandidates.some((n) => !seen.has(n) && canFeed(n));
 }
 
 
