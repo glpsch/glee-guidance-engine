@@ -316,7 +316,7 @@ describe("Rule 11 — the source is scored as a destination (movement gate)", ()
     expect(total(finalBoard, RED)).toBe(2);
   });
 
-  it("chains a spread-out colour onto one plate", () => {
+  it("chains a spread-out colour toward the pile that can pull it", () => {
     const b = board(s, {
       0: { [YELLOW]: 1 },
       1: { [YELLOW]: 1 },
@@ -324,10 +324,13 @@ describe("Rule 11 — the source is scored as a destination (movement gate)", ()
       5: { [YELLOW]: 1 },
     });
     const { finalBoard } = resolveBoard(b, s, null);
-    const holders = finalBoard.cells.filter((p) => (p?.counts[YELLOW] ?? 0) > 0);
-    expect(holders.length).toBe(1);
-    expect(at(finalBoard, 0, YELLOW)).toBe(4);
+    // 5 feeds 2, then 1 feeds the now-larger 2. Plate 0 keeps its single piece:
+    // its only neighbour is empty of yellow, and a same-size pile never
+    // outranks its source (that is the termination guarantee of the gate).
+    expect(at(finalBoard, 2, YELLOW)).toBe(3);
+    expect(at(finalBoard, 0, YELLOW)).toBe(1);
   });
+
 });
 
 
