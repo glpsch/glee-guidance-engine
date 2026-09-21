@@ -88,8 +88,7 @@ export function collectCandidates(
         // unless the move completes a cake right now.
         const wouldEmpty = movable >= have;
         const completesNow = (dest.counts[color] ?? 0) + movable >= capacity;
-        if (wouldEmpty && !completesNow && isBridge(board, from, to, color, capacity, activeIndex))
-          continue;
+        if (wouldEmpty && !completesNow && isBridge(board, from, to, color)) continue;
 
         out.push({ from, to, color, available: have, key: [...destRank, from, color] });
       }
