@@ -18,6 +18,21 @@ interface Candidate {
 }
 
 /**
+ * Is `from` the only route by which another neighbour's pieces of `color`
+ * can reach `to`? True when some other neighbour of `from` holds that colour
+ * and is not itself adjacent to `to`.
+ */
+function isBridge(board: Board, from: number, to: number, color: CakeType): boolean {
+  const destNeighbors = new Set(neighbors(board, to));
+  for (const n of neighbors(board, from)) {
+    if (n === to || destNeighbors.has(n)) continue;
+    const plate = board.cells[n];
+    if (plate && (plate.counts[color] ?? 0) > 0) return true;
+  }
+  return false;
+}
+
+/**
  * Rule 19 — one unified candidate list across every colour.
  * A movement is legal only when the destination is a strictly better
  * destination for that colour than the source itself (Rule 11). That single
