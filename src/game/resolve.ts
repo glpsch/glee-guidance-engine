@@ -18,19 +18,32 @@ interface Candidate {
 }
 
 /**
- * Is `from` the only route by which another neighbour's pieces of `color`
- * can reach `to`? True when some other neighbour of `from` holds that colour
- * and is not itself adjacent to `to`.
+ * Is `from` the only route by which a WORSE neighbour's pieces of `color` can
+ * reach `to`? Only neighbours that rank below the source count: those are the
+ * ones that still have to feed through here. A neighbour that already ranks
+ * better never needs the bridge, so it must not freeze the source in place —
+ * that would deadlock a straight chain of same-colour plates.
  */
-function isBridge(board: Board, from: number, to: number, color: CakeType): boolean {
+function isBridge(
+  board: Board,
+  from: number,
+  to: number,
+  color: CakeType,
+  capacity: number,
+  activeIndex: number | null,
+): boolean {
   const destNeighbors = new Set(neighbors(board, to));
+  const fromRank = destinationRank(board, from, color, 0, capacity, activeIndex);
   for (const n of neighbors(board, from)) {
     if (n === to || destNeighbors.has(n)) continue;
     const plate = board.cells[n];
-    if (plate && (plate.counts[color] ?? 0) > 0) return true;
+    if (!plate || (plate.counts[color] ?? 0) <= 0) continue;
+    const nRank = destinationRank(board, n, color, 0, capacity, activeIndex);
+    if (compareRanks(nRank, fromRank) > 0) return true;
   }
   return false;
 }
+
 
 /**
  * Rule 19 — one unified candidate list across every colour.
