@@ -18,30 +18,34 @@ interface Candidate {
 }
 
 /**
- * Is `from` the only route by which a WORSE neighbour's pieces of `color` can
- * reach `to`? Only neighbours that rank below the source count: those are the
- * ones that still have to feed through here. A neighbour that already ranks
- * better never needs the bridge, so it must not freeze the source in place —
- * that would deadlock a straight chain of same-colour plates.
+ * Would emptying `from` of `color` cut some pieces off from `to`?
+ *
+ * Walks the network of plates that hold this colour, starting at `to` and
+ * pretending `from` no longer holds any. Any neighbour of `from` that still
+ * holds the colour but can no longer be reached depends on `from` as a
+ * stepping stone, so the source must keep its pieces until those neighbours
+ * have fed through — otherwise the bridge plate empties (or completes and
+ * clears) and the rest of that colour is stranded.
  */
-function isBridge(
-  board: Board,
-  from: number,
-  to: number,
-  color: CakeType,
-  capacity: number,
-  activeIndex: number | null,
-): boolean {
-  const destNeighbors = new Set(neighbors(board, to));
-  const fromRank = destinationRank(board, from, color, 0, capacity, activeIndex);
-  for (const n of neighbors(board, from)) {
-    if (n === to || destNeighbors.has(n)) continue;
-    const plate = board.cells[n];
-    if (!plate || (plate.counts[color] ?? 0) <= 0) continue;
-    const nRank = destinationRank(board, n, color, 0, capacity, activeIndex);
-    if (compareRanks(nRank, fromRank) > 0) return true;
+function isBridge(board: Board, from: number, to: number, color: CakeType): boolean {
+  const holds = (i: number) => {
+    const p = board.cells[i];
+    return !!p && (p.counts[color] ?? 0) > 0;
+  };
+  const cutoffCandidates = neighbors(board, from).filter((n) => n !== to && holds(n));
+  if (cutoffCandidates.length === 0) return false;
+
+  const seen = new Set<number>([to, from]);
+  const queue = [to];
+  while (queue.length) {
+    const cur = queue.shift()!;
+    for (const n of neighbors(board, cur)) {
+      if (seen.has(n) || !holds(n)) continue;
+      seen.add(n);
+      queue.push(n);
+    }
   }
-  return false;
+  return cutoffCandidates.some((n) => !seen.has(n));
 }
 
 
